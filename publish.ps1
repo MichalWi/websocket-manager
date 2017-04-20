@@ -1,25 +1,34 @@
 param(
-    [switch]$publish = $false,
+    [Parameter(Mandatory=$true)][string]$repo,
     [switch]$stable = $false,
     [string]$versionSuffix = "1"
 )
 
-$versionSuffix = "--version-suffix $versionSuffix"
+$projects = @(
+    "WebSocketManager",
+    "WebSocketManager.Common",
+    "WebSocketManager.Client",
+    "WebSocketManager.Sockets",
+    "AsyncWebSocketClient"
+)
 
-$repo = "c:\myget\"
-if ($publish) {
-    $repo = "z:\Engineering\RoboMobile\OurGet\"
-}
+$packArguments = New-Object System.Collections.ArrayList
+$_ = $packArguments.Add("pack")
+$_ = $packArguments.Add("--include-source")
+$_ = $packArguments.Add("--include-symbols")
+$_ = $packArguments.Add("--version-suffix")
+$_ = $packArguments.Add($versionSuffix)
 
 if ($stable) {
-    $versionSuffix = ""
+    $_ = $packArguments.RemoveAt($packArguments.Count - 1)
+    $_ = $packArguments.RemoveAt($packArguments.Count - 1)
 }
 
-dotnet pack --include-source --include-symbols $versionSuffix src\WebSocketManager\WebSocketManager.csproj
-dotnet pack --include-source --include-symbols $versionSuffix src\WebSocketManager.Common\WebSocketManager.Common.csproj
-dotnet pack --include-source --include-symbols $versionSuffix src\WebSocketManager.Client\WebSocketManager.Client.csproj
-dotnet pack --include-source --include-symbols $versionSuffix src\WebSocketManager.Sockets\WebSocketManager.Sockets.csproj
-dotnet pack --include-source --include-symbols $versionSuffix src\AsyncWebSocketClient\AsyncWebSocketClient.csproj
+foreach ($project in $projects) {
+    $_ = $packArguments.Add("src\$project\$project.csproj")
+    dotnet @packArguments
+    $_ = $packArguments.RemoveAt($packArguments.Count - 1)
+}
 
 Get-ChildItem "." -Recurse -Filter "*.nupkg" | 
 Foreach-Object {
